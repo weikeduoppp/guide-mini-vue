@@ -1,8 +1,8 @@
-import { effect } from "../effect";
-import { reactive } from "../reactive";
+import { effect } from '../effect';
+import { reactive } from '../reactive';
 
-describe("effect", () => {
-  it("happy path", () => {
+describe('effect', () => {
+  it('happy path', () => {
     const user = reactive({
       age: 10,
     });
@@ -17,5 +17,20 @@ describe("effect", () => {
     // update
     user.age++;
     expect(nextAge).toBe(12);
+  });
+
+  it('effect runner', () => {
+    // effect会返回函数fn, 执行会返回effectFn的值
+
+    let foo = 10;
+    const runner = effect(() => {
+      foo++;
+      return 'foo';
+    });
+
+    expect(foo).toBe(11);
+    const res = runner();
+    expect(foo).toBe(12);
+    expect(res).toBe('foo');
   });
 });
