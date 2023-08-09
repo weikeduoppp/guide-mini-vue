@@ -1,17 +1,39 @@
+import { extend } from '../shared/index';
+
 class ReactiveEffect {
   private _fn: any;
-  _scheduler: any;
-
+  scheduler: any;
+  deps = [];
+  active = true;
+  onStop?: () => void;
   constructor(fn, options) {
     this._fn = fn;
-    if(options) {
-      this._scheduler = options.scheduler
+
+    if (options) {
+      extend(this, options);
+      // Object.assign(this, options);
+      // this.scheduler = options.scheduler;
     }
   }
   run() {
     activeEffect = this;
     return this._fn();
   }
+  // 执行stop
+  stop() {
+    if (this.active) {
+      clearupEffect(this);
+      this.onStop?.();
+      this.active = false;
+    }
+  }
+}
+
+function clearupEffect(effect) {
+  // dep删除依赖effect
+  effect.deps.forEach((dep: any) => {
+    dep.delete(effect);
+  });
 }
 
 const targetMap = new Map();
@@ -29,7 +51,14 @@ export function track(target, key) {
     depsMap.set(key, dep);
   }
 
-  dep.add(activeEffect);
+  if (!activeEffect) return;
+
+  // stop后 不添加effect
+  if (activeEffect.active) {
+    dep.add(activeEffect);
+    // fn可以有多个reactive
+    activeEffect.deps.push(dep);
+  }
 }
 
 export function trigger(target, key) {
@@ -37,8 +66,8 @@ export function trigger(target, key) {
   let dep = depsMap.get(key);
 
   for (const effect of dep) {
-    if(effect._scheduler) {
-      effect._scheduler()
+    if (effect.scheduler) {
+      effect.scheduler();
     } else {
       effect.run();
     }
@@ -51,5 +80,12 @@ export function effect(fn: () => any, options?: any) {
   const _effect = new ReactiveEffect(fn, options);
 
   _effect.run();
-  return _effect.run.bind(_effect)
+  const runner: any = _effect.run.bind(_effect);
+  // 挂载出去
+  runner.effect = _effect;
+  return runner;
+}
+
+export function stop(runner) {
+  runner.effect.stop();
 }

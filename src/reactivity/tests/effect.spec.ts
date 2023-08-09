@@ -1,4 +1,4 @@
-import { effect } from '../effect';
+import { effect, stop } from '../effect';
 import { reactive } from '../reactive';
 
 describe('effect', () => {
@@ -68,5 +68,44 @@ describe('effect', () => {
     expect(dummy).toBe(1);
     run();
     expect(dummy).toBe(2);
+  });
+
+  it('stop', () => {
+    let dummy: any;
+    const obj = reactive({
+      foo: 1,
+    });
+    const runner = effect(() => {
+      dummy = obj.foo;
+    });
+    expect(dummy).toBe(1);
+    obj.foo++;
+    expect(dummy).toBe(2);
+    stop(runner);
+    obj.foo++;
+    expect(dummy).toBe(2);
+
+    runner();
+    expect(dummy).toBe(3);
+    obj.foo++;
+    expect(dummy).toBe(3);
+  });
+
+  it('onStop', () => {
+    let dummy: any;
+    const obj = reactive({
+      foo: 1,
+    });
+    const onStop = jest.fn()
+    const runner = effect(() => {
+      dummy = obj.foo;
+    }, {
+      onStop
+    });
+    expect(dummy).toBe(1);
+    obj.foo++;
+    expect(dummy).toBe(2);
+    stop(runner);
+    expect(onStop).toHaveBeenCalledTimes(1)
   });
 });
